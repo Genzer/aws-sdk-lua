@@ -47,6 +47,30 @@ function M.use_luasocket(http, ltn12)
 	end
 end
 
+function M.use_resty_http(http)
+	local json = require "aws-sdk.utils.json"
+	M.http_request = function(uri, method, headers, post_data, callback)
+		for k, v in pairs(headers) do print(k, v) end
+		local response, error = http:request_uri(uri, {
+			method = method,
+			body = post_data,
+			headers = {
+				["X-Amz-Target"] = headers["X-Amz-Target"],
+				["Content-Type"] = headers["application/x-amz-json-1.1"],
+				["Authorization"] = headers["Authorization"],
+				["X-Amz-Date"] = headers["X-Amz-Date"],
+				["Host"] = "ecr.ap-southeast-1.amazonaws.com"
+			},
+		})
+		if error then
+			ngx.log(ngx.ERR, "HHH - ERROR!")
+			ngx.log(ngx.ERR, error)
+			callback({ status = 500, response = error})
+		end
+		ngx.log(ngx.INFO, response.body)
+		callback({ status = response.status, response = json.encode(response.body), headers = response.headers })
+	end
+end
 
 --- Use the Corona network.request function to make HTTP requests
 function M.use_corona()
